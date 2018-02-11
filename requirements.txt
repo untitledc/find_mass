@@ -1,0 +1,10 @@
+future
+numpy
+scipy
+matplotlib
+scikit-learn
+keras
+tensorflow-gpu
+pydot-ng
+h5py
+Pillow
