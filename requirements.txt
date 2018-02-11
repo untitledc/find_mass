@@ -4,7 +4,7 @@ scipy
 matplotlib
 scikit-learn
 keras
-tensorflow-gpu
+tensorflow-gpu==1.4.0
 pydot-ng
 h5py
 Pillow

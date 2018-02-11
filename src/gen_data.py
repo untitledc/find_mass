@@ -41,9 +41,9 @@ def parse_args():
                         help='number of images to generate')
     parser.add_argument('--obj_image', type=str, required=True,
                         help='filename of the object image')
-    parser.add_argument('--height', type=int, default=300,
+    parser.add_argument('--height', type=int, default=320,
                         help='height of generated images')
-    parser.add_argument('--width', type=int, default=300,
+    parser.add_argument('--width', type=int, default=320,
                         help='width of generated images')
 
     return parser.parse_args()
@@ -53,6 +53,8 @@ def main(args):
     gen_num = args.amount
 
     img_generator = ImageGenerator(args.width, args.height, args.obj_image)
+    #img_generator = ImageGenerator(args.width, args.height, args.obj_image,
+    #                               bg_color=(192,128,64))
     fn_len = len(str(gen_num))
     if not os.path.exists(GEN_IMAGE_ROOT):
         os.mkdir(GEN_IMAGE_ROOT)
