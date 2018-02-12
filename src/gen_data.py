@@ -41,9 +41,9 @@ def parse_args():
                         help='number of images to generate')
     parser.add_argument('--obj_image', type=str, required=True,
                         help='filename of the object image')
-    parser.add_argument('--height', type=int, default=320,
+    parser.add_argument('--height', type=int, default=144,
                         help='height of generated images')
-    parser.add_argument('--width', type=int, default=320,
+    parser.add_argument('--width', type=int, default=144,
                         help='width of generated images')
 
     return parser.parse_args()

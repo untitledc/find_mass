@@ -5,8 +5,9 @@ import os
 
 from keras import backend as K
 from keras.layers import Activation, Input
+from keras.layers import LeakyReLU
 from keras.layers import Conv2D, Conv2DTranspose
-from keras.layers import Dense, Flatten, Reshape
+from keras.layers import MaxPooling2D, UpSampling2D
 from keras.models import Model
 from keras.optimizers import Adam
 from keras.preprocessing import image
@@ -16,29 +17,28 @@ from PIL import Image
 
 LayerStructure = namedtuple('LayerStructure', ['kernel', 'stride', 'channel'])
 
-LATENT_DIM = 16
-ENCODER_LAYER_STRUCTS = [
-    LayerStructure(3, 2, 32),
-    LayerStructure(3, 2, 64),
-    LayerStructure(3, 2, 128),
-    LayerStructure(2, 1, 32),
-]
-DECODER_LAYER_STRUCTS = [
-    LayerStructure(2, 1, 128),
-    LayerStructure(3, 2, 64),
-    LayerStructure(3, 2, 32),
-    LayerStructure(3, 2, 3)
-]
 #ENCODER_LAYER_STRUCTS = [
+#    LayerStructure(3, 2, 32),
 #    LayerStructure(3, 2, 64),
-#    LayerStructure(3, 2, 96)
+#    LayerStructure(3, 2, 128),
+#    LayerStructure(3, 2, 256)
 #]
 #DECODER_LAYER_STRUCTS = [
+#    LayerStructure(3, 2, 128),
 #    LayerStructure(3, 2, 64),
+#    LayerStructure(3, 2, 32),
+#    LayerStructure(3, 2, 3)
+#]
+#ENCODER_LAYER_STRUCTS = [
+#    LayerStructure(3, 2, 128),
+#    LayerStructure(3, 2, 256),
+#]
+#DECODER_LAYER_STRUCTS = [
+#    LayerStructure(3, 2, 128),
 #    LayerStructure(3, 2, 3)
 #]
 BATCH_SIZE = 128
-EPOCHS = 30
+EPOCHS = 20
 LEARNING_RATE = 0.01
 DECAY = 0.99
 IN_IMG_WIDTH = 144
@@ -64,36 +64,38 @@ def main():
     x_input = Input(shape=(IN_IMG_WIDTH, IN_IMG_WIDTH, 3))
     x = x_input
 
-    for layer_struct in ENCODER_LAYER_STRUCTS:
-        x = Conv2D(filters=layer_struct.channel,
-                   kernel_size=layer_struct.kernel,
-                   strides=layer_struct.stride,
-                   activation='relu',
-                   padding='same')(x)
-    cnn_shape = K.int_shape(x)
-
-    x = Flatten()(x)
-    x = Dense(32, activation='relu')(x)
-    x = Dense(LATENT_DIM, activation='relu')(x)
+    x = Conv2D(filters=32, kernel_size=3, strides=1, padding='same',
+               activation='relu')(x)
+    x = MaxPooling2D(pool_size=2, padding='same')(x)
+    x = Conv2D(filters=8, kernel_size=3, strides=1, padding='same',
+               activation='relu')(x)
+    x = MaxPooling2D(pool_size=2, padding='same')(x)
+    x = Conv2D(filters=4, kernel_size=3, strides=1, padding='same',
+               activation='relu')(x)
+    x = MaxPooling2D(pool_size=2, padding='same')(x)
 
     mid_layer = x
+    mid_shape = K.int_shape(x)
+    print(mid_shape)
 
     encoder_model = Model(x_input, mid_layer, name='encoder')
     encoder_model.summary()
 
-    decoder_input = Input(shape=(LATENT_DIM, ))
+    decoder_input = Input(shape=(mid_shape[1], mid_shape[2], mid_shape[3]))
     x = decoder_input
-    x = Dense(32, activation='relu')(x)
-    x = Dense(units=cnn_shape[1]*cnn_shape[2]*cnn_shape[3], activation='relu')(x)
-    x = Reshape((cnn_shape[1], cnn_shape[2], cnn_shape[3]))(x)
 
-    for layer_struct in DECODER_LAYER_STRUCTS:
-        x = Conv2DTranspose(filters=layer_struct.channel,
-                            kernel_size=layer_struct.kernel,
-                            strides=layer_struct.stride,
-                            activation='relu',
-                            padding='same')(x)
-    outputs = Activation('relu')(x)
+    x = Conv2DTranspose(filters=4, kernel_size=3, strides=1, padding='same',
+                        activation='relu')(x)
+    x = UpSampling2D(size=2)(x)
+    x = Conv2DTranspose(filters=8, kernel_size=3, strides=1, padding='same',
+                        activation='relu')(x)
+    x = UpSampling2D(size=2)(x)
+    x = Conv2DTranspose(filters=32, kernel_size=3, strides=1, padding='same',
+                        activation='relu')(x)
+    x = UpSampling2D(size=2)(x)
+    x = Conv2DTranspose(filters=3, kernel_size=3, strides=1, padding='same',
+                        activation='relu')(x)
+    outputs = x
 
     decoder_model = Model(decoder_input, outputs, name='decoder')
     decoder_model.summary()
@@ -102,14 +104,13 @@ def main():
                      name='auto_encoder')
     ae_model.summary()
 
-    ae_model.compile(loss='mse', optimizer=Adam(lr=LEARNING_RATE))
+    ae_model.compile(loss='mse', optimizer=Adam(lr=LEARNING_RATE, decay=DECAY))
     ae_model.fit(x_data, x_data, batch_size=BATCH_SIZE, epochs=EPOCHS)
 
     x_decoded = ae_model.predict(x_data)
-    x_latent = encoder_model.predict(x_data)
     show_image(x_data[0])
     show_image(x_decoded[0])
-    print(x_latent[0])
+    print(x_decoded[0][1,1])
 
 
 if __name__ == '__main__':
